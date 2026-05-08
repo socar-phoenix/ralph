@@ -1,0 +1,99 @@
+{
+  "project": "ralph-socar",
+  "branchName": "feature/socar-customization",
+  "description": "Ralph fork SOCAR 커스터마이징 — claude 기본화, amp 제거, 보호 브랜치/prod context 가드, --safe 모드. 최종 PR 생성까지.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "amp 의존성 제거 및 claude 기본 백엔드화",
+      "description": "As a SOCAR developer, I need ralph to default to claude backend with no amp code path so I can run it without installing amp.",
+      "acceptanceCriteria": [
+        "ralph.sh의 TOOL 기본값을 'claude'로 변경",
+        "amp 분기(if [[ $TOOL == amp ]]) 코드 경로 완전 제거",
+        "--tool 플래그 처리는 유지하되 'claude' 외 값은 명확한 에러 + exit 1",
+        "README.md에서 'amp or claude'를 'claude'로 정정",
+        "prompt.md에서 amp 전용 표현(AMP_CURRENT_THREAD_ID 등) 제거",
+        "bash -n ralph.sh 통과"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "라인 8 TOOL=amp 기본값, 라인 91-96 분기, 라인 32-35 검증. AGENTS.md/CLAUDE.md에서도 amp 언급 정리."
+    },
+    {
+      "id": "US-002",
+      "title": "--safe 기본 / --unsafe 옵트인 권한 모드",
+      "description": "As a SOCAR operator, I need ralph to run in safe mode by default so claude does not bypass permission prompts unintentionally.",
+      "acceptanceCriteria": [
+        "ralph.sh에 SAFE_MODE 변수 추가 (기본 true)",
+        "--unsafe 또는 --dangerously-skip-permissions 플래그를 받으면 SAFE_MODE=false",
+        "SAFE_MODE=true이면 'claude --print' 실행, false이면 'claude --dangerously-skip-permissions --print'",
+        "기동 시 현재 모드를 stdout에 명확히 표시 (예: 'Mode: SAFE' / 'Mode: UNSAFE (permissions skipped)')",
+        "bash -n ralph.sh 통과"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "기존 라인 95는 무조건 dangerously-skip-permissions였음. 옵트인 구조로 바꿔야 함."
+    },
+    {
+      "id": "US-003",
+      "title": "보호 브랜치 push 사전 검증 (abort 룰)",
+      "description": "As a SOCAR operator, I need ralph to abort if it would run on a protected branch so it cannot accidentally commit to main/master/develop/production.",
+      "acceptanceCriteria": [
+        "ralph.sh 시작 직후 (archive 로직 이전) 사전 검증 함수 추가",
+        "현재 git 브랜치가 main|master|develop|production 중 하나면 stderr로 명확한 에러 + exit 1",
+        "prd.json의 branchName이 동일 정규식에 매칭되면 stderr로 명확한 에러 + exit 1",
+        "환경변수 RALPH_ALLOW_PROTECTED=1 이면 경고만 출력하고 진행 (테스트용 escape hatch)",
+        "bash -n ralph.sh 통과"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "에러 메시지에 어떤 브랜치/어떤 변수에 걸렸는지 포함."
+    },
+    {
+      "id": "US-004",
+      "title": "K8s prod context 검증 (eks-prod-* abort)",
+      "description": "As a SOCAR operator, I need ralph to abort if my active kubectl context targets a production EKS cluster so autonomous loops cannot mutate prod resources.",
+      "acceptanceCriteria": [
+        "ralph.sh 사전 검증 단계에 kubectl context 체크 함수 추가",
+        "kubectl config current-context 가 'eks-prod-' prefix로 시작하면 stderr로 명확한 에러 + exit 1",
+        "kubectl 미설치이면 'kubectl not found, skipping context check' 경고만 출력하고 진행",
+        "환경변수 RALPH_ALLOW_PROD_CTX=1 이면 경고만 출력하고 진행 (테스트용)",
+        "bash -n ralph.sh 통과"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "kubectl 호출 실패(설정 없음, RBAC 등)는 skip 처리."
+    },
+    {
+      "id": "US-005",
+      "title": "README/AGENTS 문서 업데이트 (SOCAR fork 안내)",
+      "description": "As a future user of this fork, I need clear docs explaining how the SOCAR variant differs from upstream.",
+      "acceptanceCriteria": [
+        "README.md 상단에 'SOCAR Fork' 섹션 추가: 변경 요약, --safe/--unsafe 사용법, 보호 브랜치/prod context 가드 설명",
+        "Usage 예시에 ./ralph.sh --safe 20, ./ralph.sh --unsafe 20 케이스 포함",
+        "AGENTS.md에서 amp 언급 제거 또는 claude 기준으로 갱신",
+        "원본 출처(snarktank/ralph) 명시 유지"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "한국어 안내 섹션은 별도 ## 섹션으로 추가 가능."
+    },
+    {
+      "id": "US-006",
+      "title": "최종 검증 및 PR 생성",
+      "description": "As a SOCAR developer, I need ralph to push the feature branch and open a PR against origin main so I can review the bundled changes.",
+      "acceptanceCriteria": [
+        "bash -n ralph.sh 통과 확인",
+        "git status로 클린 상태 확인 (모든 변경사항이 이전 스토리에서 커밋됨)",
+        "git push -u origin feature/socar-customization 성공",
+        "gh pr create --base main --head feature/socar-customization 으로 PR 생성",
+        "PR 제목: 'feat: SOCAR 커스터마이징 — claude 기본화 / 보호 브랜치·prod context 가드 / --safe 모드'",
+        "PR 본문: Summary(3-5 bullet), Changes(파일별), Test plan 포함",
+        "PR URL을 progress.txt 마지막 줄에 'PR_URL: <url>' 형식으로 append"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "PR base는 socar-phoenix/ralph의 main. upstream(snarktank)으로 보내지 말 것. PR 생성 후 <promise>COMPLETE</promise> 출력."
+    }
+  ]
+}

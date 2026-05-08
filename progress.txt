@@ -1,0 +1,22 @@
+## Codebase Patterns
+- ralph.sh는 claude 단일 백엔드만 지원; amp 분기 없음
+- bash -n ralph.sh 로 문법 검증 필수
+- 에러 메시지는 stderr(>&2)로 출력
+---
+
+# Ralph Progress Log
+Started: 2026년  5월  8일 금요일 15시 38분 05초 KST
+---
+
+## 2026-05-08 15:40 - US-001
+- amp 의존성 제거 및 claude 기본 백엔드화 구현
+- Files changed:
+  - ralph.sh: TOOL 기본값 "amp"→"claude", amp 분기 제거, 검증을 claude 전용으로 변경
+  - prompt.md: AMP_CURRENT_THREAD_ID/thread URL 제거, AGENTS.md→CLAUDE.md 참조 변경
+  - README.md: amp 언급 전체 정리, claude 단일 backend 기준으로 갱신
+  - AGENTS.md: amp 언급 제거, claude 기준으로 갱신
+- **Learnings for future iterations:**
+  - ralph.sh의 amp 분기는 lines 91-96에 있었으나 완전 제거됨
+  - --tool 플래그는 여전히 파싱하지만 claude 외 값은 stderr + exit 1
+  - bash -n 검증은 문법 오류 없이 통과
+---
