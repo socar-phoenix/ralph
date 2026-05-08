@@ -1,12 +1,13 @@
 #!/bin/bash
 # Ralph Wiggum - Long-running AI agent loop
-# Usage: ./ralph.sh [--tool amp|claude] [max_iterations]
+# Usage: ./ralph.sh [--tool claude] [--unsafe] [max_iterations]
 
 set -e
 
 # Parse arguments
-TOOL="amp"  # Default to amp for backwards compatibility
+TOOL="claude"
 MAX_ITERATIONS=10
+SAFE_MODE=true
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -16,6 +17,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --tool=*)
       TOOL="${1#*=}"
+      shift
+      ;;
+    --unsafe|--dangerously-skip-permissions)
+      SAFE_MODE=false
       shift
       ;;
     *)
@@ -28,9 +33,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Validate tool choice
-if [[ "$TOOL" != "amp" && "$TOOL" != "claude" ]]; then
-  echo "Error: Invalid tool '$TOOL'. Must be 'amp' or 'claude'."
+# Validate tool choice — claude only
+if [[ "$TOOL" != "claude" ]]; then
+  echo "Error: Invalid tool '$TOOL'. Only 'claude' is supported." >&2
   exit 1
 fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -38,6 +43,69 @@ PRD_FILE="$SCRIPT_DIR/prd.json"
 PROGRESS_FILE="$SCRIPT_DIR/progress.txt"
 ARCHIVE_DIR="$SCRIPT_DIR/archive"
 LAST_BRANCH_FILE="$SCRIPT_DIR/.last-branch"
+
+# 보호 브랜치 패턴
+PROTECTED_BRANCH_PATTERN="^(main|master|develop|production)$"
+
+# 사전 검증: 보호 브랜치 체크
+check_protected_branch() {
+  local git_branch=""
+  local prd_branch=""
+
+  git_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+  if [ -f "$PRD_FILE" ]; then
+    prd_branch=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
+  fi
+
+  if [[ "$git_branch" =~ $PROTECTED_BRANCH_PATTERN ]]; then
+    if [[ "${RALPH_ALLOW_PROTECTED:-}" == "1" ]]; then
+      echo "Warning: current git branch '$git_branch' is protected. Proceeding because RALPH_ALLOW_PROTECTED=1." >&2
+    else
+      echo "Error: current git branch '$git_branch' is a protected branch. Aborting." >&2
+      echo "Set RALPH_ALLOW_PROTECTED=1 to override (testing only)." >&2
+      exit 1
+    fi
+  fi
+
+  if [[ "$prd_branch" =~ $PROTECTED_BRANCH_PATTERN ]]; then
+    if [[ "${RALPH_ALLOW_PROTECTED:-}" == "1" ]]; then
+      echo "Warning: prd.json branchName '$prd_branch' is protected. Proceeding because RALPH_ALLOW_PROTECTED=1." >&2
+    else
+      echo "Error: prd.json branchName '$prd_branch' is a protected branch. Aborting." >&2
+      echo "Set RALPH_ALLOW_PROTECTED=1 to override (testing only)." >&2
+      exit 1
+    fi
+  fi
+}
+
+check_protected_branch
+
+# 사전 검증: kubectl prod context 체크
+check_kubectl_context() {
+  if ! command -v kubectl &>/dev/null; then
+    echo "Warning: kubectl not found, skipping context check." >&2
+    return
+  fi
+
+  local ctx=""
+  ctx=$(kubectl config current-context 2>/dev/null || echo "")
+  if [ -z "$ctx" ]; then
+    echo "Warning: kubectl context not set, skipping context check." >&2
+    return
+  fi
+
+  if [[ "$ctx" == eks-prod-* ]]; then
+    if [[ "${RALPH_ALLOW_PROD_CTX:-}" == "1" ]]; then
+      echo "Warning: kubectl context '$ctx' targets production. Proceeding because RALPH_ALLOW_PROD_CTX=1." >&2
+    else
+      echo "Error: kubectl context '$ctx' targets a production EKS cluster. Aborting." >&2
+      echo "Set RALPH_ALLOW_PROD_CTX=1 to override (testing only)." >&2
+      exit 1
+    fi
+  fi
+}
+
+check_kubectl_context
 
 # Archive previous run if branch changed
 if [ -f "$PRD_FILE" ] && [ -f "$LAST_BRANCH_FILE" ]; then
@@ -79,6 +147,11 @@ if [ ! -f "$PROGRESS_FILE" ]; then
   echo "---" >> "$PROGRESS_FILE"
 fi
 
+if [[ "$SAFE_MODE" == "true" ]]; then
+  echo "Mode: SAFE"
+else
+  echo "Mode: UNSAFE (permissions skipped)"
+fi
 echo "Starting Ralph - Tool: $TOOL - Max iterations: $MAX_ITERATIONS"
 
 for i in $(seq 1 $MAX_ITERATIONS); do
@@ -87,11 +160,10 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   echo "  Ralph Iteration $i of $MAX_ITERATIONS ($TOOL)"
   echo "==============================================================="
 
-  # Run the selected tool with the ralph prompt
-  if [[ "$TOOL" == "amp" ]]; then
-    OUTPUT=$(cat "$SCRIPT_DIR/prompt.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
+  # Claude Code: SAFE_MODE=true이면 --print만, false이면 --dangerously-skip-permissions 추가
+  if [[ "$SAFE_MODE" == "true" ]]; then
+    OUTPUT=$(claude --print < "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee /dev/stderr) || true
   else
-    # Claude Code: use --dangerously-skip-permissions for autonomous operation, --print for output
     OUTPUT=$(claude --dangerously-skip-permissions --print < "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee /dev/stderr) || true
   fi
   

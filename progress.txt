@@ -1,0 +1,61 @@
+## Codebase Patterns
+- ralph.sh는 claude 단일 백엔드만 지원; amp 분기 없음
+- bash -n ralph.sh 로 문법 검증 필수
+- 에러 메시지는 stderr(>&2)로 출력
+---
+
+# Ralph Progress Log
+Started: 2026년  5월  8일 금요일 15시 38분 05초 KST
+---
+
+## 2026-05-08 16:05 - US-006
+- 최종 검증 및 PR 생성 완료
+- bash -n ralph.sh 통과, git status 클린 (untracked: plan.md, ralph.log 무관)
+- git push -u origin feature/socar-customization 성공
+- PR 생성: feat: SOCAR 커스터마이징 — claude 기본화 / 보호 브랜치·prod context 가드 / --safe 모드
+- PR_URL: https://github.com/socar-phoenix/ralph/pull/1
+---
+
+## 2026-05-08 16:00 - US-005
+- README/AGENTS 문서 업데이트 (SOCAR fork 안내)
+- Files changed:
+  - README.md: 상단에 "SOCAR Fork" 배너 및 ## SOCAR Fork 섹션 추가 (변경 요약, 사용법, escape hatch 설명)
+  - AGENTS.md: amp 언급 완전 제거, claude 기준 갱신 (US-001에서 이미 완료)
+- **Learnings for future iterations:**
+  - 한국어 안내 섹션은 ## SOCAR Fork 아래에 위치
+  - escape hatch 환경변수 (RALPH_ALLOW_PROTECTED, RALPH_ALLOW_PROD_CTX) README에 명시
+---
+
+## 2026-05-08 15:55 - US-003 & US-004
+- 보호 브랜치 push 사전 검증 및 K8s prod context 검증 구현
+- Files changed:
+  - ralph.sh: check_protected_branch() 함수 추가 (git 브랜치 + prd.json branchName 검증)
+  - ralph.sh: check_kubectl_context() 함수 추가 (eks-prod-* prefix 검증)
+  - 두 함수 모두 archive 로직 이전에 호출
+- **Learnings for future iterations:**
+  - RALPH_ALLOW_PROTECTED=1, RALPH_ALLOW_PROD_CTX=1 escape hatch 환경변수로 override 가능
+  - kubectl 미설치/context 없음은 경고만 출력하고 계속 진행
+  - 정규식 패턴: `^(main|master|develop|production)$`, kubectl은 `eks-prod-*` glob
+---
+
+## 2026-05-08 15:50 - US-002
+- --safe 기본 / --unsafe 옵트인 권한 모드 구현
+- Files changed:
+  - ralph.sh: SAFE_MODE 변수 추가(기본 true), --unsafe/--dangerously-skip-permissions 파싱, 기동 시 모드 표시, 조건부 claude 실행
+- **Learnings for future iterations:**
+  - SAFE_MODE=true → `claude --print`, SAFE_MODE=false → `claude --dangerously-skip-permissions --print`
+  - 모드 표시 메시지는 archive/branch 로직 이후, 루프 시작 전에 출력
+---
+
+## 2026-05-08 15:40 - US-001
+- amp 의존성 제거 및 claude 기본 백엔드화 구현
+- Files changed:
+  - ralph.sh: TOOL 기본값 "amp"→"claude", amp 분기 제거, 검증을 claude 전용으로 변경
+  - prompt.md: AMP_CURRENT_THREAD_ID/thread URL 제거, AGENTS.md→CLAUDE.md 참조 변경
+  - README.md: amp 언급 전체 정리, claude 단일 backend 기준으로 갱신
+  - AGENTS.md: amp 언급 제거, claude 기준으로 갱신
+- **Learnings for future iterations:**
+  - ralph.sh의 amp 분기는 lines 91-96에 있었으나 완전 제거됨
+  - --tool 플래그는 여전히 파싱하지만 claude 외 값은 stderr + exit 1
+  - bash -n 검증은 문법 오류 없이 통과
+---
