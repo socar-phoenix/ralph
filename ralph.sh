@@ -44,6 +44,69 @@ PROGRESS_FILE="$SCRIPT_DIR/progress.txt"
 ARCHIVE_DIR="$SCRIPT_DIR/archive"
 LAST_BRANCH_FILE="$SCRIPT_DIR/.last-branch"
 
+# 보호 브랜치 패턴
+PROTECTED_BRANCH_PATTERN="^(main|master|develop|production)$"
+
+# 사전 검증: 보호 브랜치 체크
+check_protected_branch() {
+  local git_branch=""
+  local prd_branch=""
+
+  git_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+  if [ -f "$PRD_FILE" ]; then
+    prd_branch=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
+  fi
+
+  if [[ "$git_branch" =~ $PROTECTED_BRANCH_PATTERN ]]; then
+    if [[ "${RALPH_ALLOW_PROTECTED:-}" == "1" ]]; then
+      echo "Warning: current git branch '$git_branch' is protected. Proceeding because RALPH_ALLOW_PROTECTED=1." >&2
+    else
+      echo "Error: current git branch '$git_branch' is a protected branch. Aborting." >&2
+      echo "Set RALPH_ALLOW_PROTECTED=1 to override (testing only)." >&2
+      exit 1
+    fi
+  fi
+
+  if [[ "$prd_branch" =~ $PROTECTED_BRANCH_PATTERN ]]; then
+    if [[ "${RALPH_ALLOW_PROTECTED:-}" == "1" ]]; then
+      echo "Warning: prd.json branchName '$prd_branch' is protected. Proceeding because RALPH_ALLOW_PROTECTED=1." >&2
+    else
+      echo "Error: prd.json branchName '$prd_branch' is a protected branch. Aborting." >&2
+      echo "Set RALPH_ALLOW_PROTECTED=1 to override (testing only)." >&2
+      exit 1
+    fi
+  fi
+}
+
+check_protected_branch
+
+# 사전 검증: kubectl prod context 체크
+check_kubectl_context() {
+  if ! command -v kubectl &>/dev/null; then
+    echo "Warning: kubectl not found, skipping context check." >&2
+    return
+  fi
+
+  local ctx=""
+  ctx=$(kubectl config current-context 2>/dev/null || echo "")
+  if [ -z "$ctx" ]; then
+    echo "Warning: kubectl context not set, skipping context check." >&2
+    return
+  fi
+
+  if [[ "$ctx" == eks-prod-* ]]; then
+    if [[ "${RALPH_ALLOW_PROD_CTX:-}" == "1" ]]; then
+      echo "Warning: kubectl context '$ctx' targets production. Proceeding because RALPH_ALLOW_PROD_CTX=1." >&2
+    else
+      echo "Error: kubectl context '$ctx' targets a production EKS cluster. Aborting." >&2
+      echo "Set RALPH_ALLOW_PROD_CTX=1 to override (testing only)." >&2
+      exit 1
+    fi
+  fi
+}
+
+check_kubectl_context
+
 # Archive previous run if branch changed
 if [ -f "$PRD_FILE" ] && [ -f "$LAST_BRANCH_FILE" ]; then
   CURRENT_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")

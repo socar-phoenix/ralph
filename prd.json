@@ -46,7 +46,7 @@
         "bash -n ralph.sh 통과"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "에러 메시지에 어떤 브랜치/어떤 변수에 걸렸는지 포함."
     },
     {
@@ -61,7 +61,7 @@
         "bash -n ralph.sh 통과"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "kubectl 호출 실패(설정 없음, RBAC 등)는 skip 처리."
     },
     {

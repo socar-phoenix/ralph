@@ -8,6 +8,18 @@
 Started: 2026년  5월  8일 금요일 15시 38분 05초 KST
 ---
 
+## 2026-05-08 15:55 - US-003 & US-004
+- 보호 브랜치 push 사전 검증 및 K8s prod context 검증 구현
+- Files changed:
+  - ralph.sh: check_protected_branch() 함수 추가 (git 브랜치 + prd.json branchName 검증)
+  - ralph.sh: check_kubectl_context() 함수 추가 (eks-prod-* prefix 검증)
+  - 두 함수 모두 archive 로직 이전에 호출
+- **Learnings for future iterations:**
+  - RALPH_ALLOW_PROTECTED=1, RALPH_ALLOW_PROD_CTX=1 escape hatch 환경변수로 override 가능
+  - kubectl 미설치/context 없음은 경고만 출력하고 계속 진행
+  - 정규식 패턴: `^(main|master|develop|production)$`, kubectl은 `eks-prod-*` glob
+---
+
 ## 2026-05-08 15:50 - US-002
 - --safe 기본 / --unsafe 옵트인 권한 모드 구현
 - Files changed:
