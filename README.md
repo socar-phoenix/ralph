@@ -1,5 +1,7 @@
 # Ralph
 
+> **SOCAR Fork** — 원본: [snarktank/ralph](https://github.com/snarktank/ralph)
+
 ![Ralph](ralph.webp)
 
 Ralph is an autonomous AI agent loop that runs [Claude Code](https://docs.anthropic.com/en/docs/claude-code) repeatedly until all PRD items are complete. Each iteration is a fresh instance with clean context. Memory persists via git history, `progress.txt`, and `prd.json`.
@@ -7,6 +9,29 @@ Ralph is an autonomous AI agent loop that runs [Claude Code](https://docs.anthro
 Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
 
 [Read my in-depth article on how I use Ralph](https://x.com/ryancarson/status/2008548371712135632)
+
+## SOCAR Fork
+
+이 저장소는 SOCAR 내부 운영 환경에 맞게 커스터마이징된 Ralph fork입니다. 원본(snarktank/ralph) 대비 주요 변경 사항:
+
+- **Claude 단일 백엔드**: amp 코드 경로 완전 제거, `claude` 명령어만 사용
+- **--safe 기본 모드**: 기본적으로 permission 프롬프트를 건너뛰지 않음. `--unsafe` 플래그로 옵트인
+- **보호 브랜치 가드**: `main`, `master`, `develop`, `production` 브랜치에서 실행 시 자동 abort
+- **prod EKS context 가드**: `eks-prod-*` kubectl context 감지 시 자동 abort
+
+### 사용법
+
+```bash
+# 기본 (SAFE 모드 — permission 프롬프트 활성)
+./ralph.sh 20
+
+# UNSAFE 모드 (permission 프롬프트 건너뜀 — 자동화 환경용)
+./ralph.sh --unsafe 20
+
+# escape hatch (테스트용, 절대 운영 환경에서 사용 금지)
+RALPH_ALLOW_PROTECTED=1 ./ralph.sh 5
+RALPH_ALLOW_PROD_CTX=1 ./ralph.sh 5
+```
 
 ## Prerequisites
 

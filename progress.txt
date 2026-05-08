@@ -8,6 +8,16 @@
 Started: 2026년  5월  8일 금요일 15시 38분 05초 KST
 ---
 
+## 2026-05-08 16:00 - US-005
+- README/AGENTS 문서 업데이트 (SOCAR fork 안내)
+- Files changed:
+  - README.md: 상단에 "SOCAR Fork" 배너 및 ## SOCAR Fork 섹션 추가 (변경 요약, 사용법, escape hatch 설명)
+  - AGENTS.md: amp 언급 완전 제거, claude 기준 갱신 (US-001에서 이미 완료)
+- **Learnings for future iterations:**
+  - 한국어 안내 섹션은 ## SOCAR Fork 아래에 위치
+  - escape hatch 환경변수 (RALPH_ALLOW_PROTECTED, RALPH_ALLOW_PROD_CTX) README에 명시
+---
+
 ## 2026-05-08 15:55 - US-003 & US-004
 - 보호 브랜치 push 사전 검증 및 K8s prod context 검증 구현
 - Files changed:

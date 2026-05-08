@@ -75,7 +75,7 @@
         "원본 출처(snarktank/ralph) 명시 유지"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "한국어 안내 섹션은 별도 ## 섹션으로 추가 가능."
     },
     {
