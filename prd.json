@@ -92,7 +92,7 @@
         "PR URL을 progress.txt 마지막 줄에 'PR_URL: <url>' 형식으로 append"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "PR base는 socar-phoenix/ralph의 main. upstream(snarktank)으로 보내지 말 것. PR 생성 후 <promise>COMPLETE</promise> 출력."
     }
   ]
