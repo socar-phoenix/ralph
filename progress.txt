@@ -8,6 +8,15 @@
 Started: 2026년  5월  8일 금요일 15시 38분 05초 KST
 ---
 
+## 2026-05-08 15:50 - US-002
+- --safe 기본 / --unsafe 옵트인 권한 모드 구현
+- Files changed:
+  - ralph.sh: SAFE_MODE 변수 추가(기본 true), --unsafe/--dangerously-skip-permissions 파싱, 기동 시 모드 표시, 조건부 claude 실행
+- **Learnings for future iterations:**
+  - SAFE_MODE=true → `claude --print`, SAFE_MODE=false → `claude --dangerously-skip-permissions --print`
+  - 모드 표시 메시지는 archive/branch 로직 이후, 루프 시작 전에 출력
+---
+
 ## 2026-05-08 15:40 - US-001
 - amp 의존성 제거 및 claude 기본 백엔드화 구현
 - Files changed:

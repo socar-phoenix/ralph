@@ -31,7 +31,7 @@
         "bash -n ralph.sh 통과"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "기존 라인 95는 무조건 dangerously-skip-permissions였음. 옵트인 구조로 바꿔야 함."
     },
     {
